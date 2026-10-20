@@ -1,0 +1,89 @@
+<div class="workspace">
+  <aside class="sidebar" aria-label="Main navigation">
+    <a class="brand" href="#main"><span class="brand-symbol">C</span><span>contact<br /><b>desk</b></span></a>
+    <div class="nav-caption">WORKSPACE</div>
+    <a class="nav-item active" href="#contacts" aria-current="page">
+      <span class="nav-glyph" aria-hidden="true">▦</span><span>Contacts</span><span class="nav-count">{{ contacts().length }}</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="workspace-avatar">AD</div>
+      <div><strong>Admin Desk</strong><small>Local workspace</small></div>
+      <span class="sidebar-dots" aria-hidden="true">···</span>
+    </div>
+  </aside>
+
+  <main class="main-area" id="main">
+    <header class="topbar"><div><span>Workspace</span><i>/</i><strong>Contacts</strong></div><span class="api-status"><span></span> API CONNECTED</span></header>
+
+    <div class="content" id="contacts">
+      <section class="intro">
+        <div><div class="overline"><span></span> YOUR DIRECTORY</div><h1>People, <em>in focus.</em></h1><p>One place for the connections that move work forward.</p></div>
+        <button class="button button-primary" type="button" (click)="openCreateDialog()"><span aria-hidden="true">+</span> Add contact</button>
+      </section>
+
+      <section class="summary" aria-label="Contact summary">
+        <article class="summary-item"><span class="summary-label">ALL CONTACTS</span><strong>{{ contacts().length }}</strong><small>in your directory</small></article>
+        <article class="summary-item"><span class="summary-label">CLIENTS</span><strong class="client-number">{{ clientCount() }}</strong><small>active relationships</small></article>
+        <article class="summary-item"><span class="summary-label">PARTNERS</span><strong class="partner-number">{{ partnerCount() }}</strong><small>people in your corner</small></article>
+        <div class="summary-note"><span>GOOD PEOPLE,<br /><i>GOOD WORK.</i></span><b aria-hidden="true">✳</b></div>
+      </section>
+
+      <section class="directory" aria-labelledby="directory-heading">
+        <div class="directory-heading">
+          <div><h2 id="directory-heading">All contacts <span>{{ visibleContacts().length }}</span></h2><p>Manage your people and their details.</p></div>
+          <div class="tools">
+            <label class="search-control"><span aria-hidden="true">⌕</span><span class="visually-hidden">Search contacts</span><input type="search" placeholder="Search contacts..." [value]="searchTerm()" (input)="onSearch($event)" /><kbd>/</kbd></label>
+            <label class="visually-hidden" for="category">Filter by category</label>
+            <select id="category" class="filter-control" [value]="selectedCategory()" (change)="onCategoryChange($event)">
+              <option value="ALL">All categories</option><option value="CLIENT">Clients</option><option value="PARTNER">Partners</option><option value="TEAM">Team</option><option value="LEAD">Leads</option><option value="VENDOR">Vendors</option>
+            </select>
+          </div>
+        </div>
+
+        @if (errorMessage()) { <div class="error-banner" role="alert">{{ errorMessage() }}<button type="button" (click)="loadContacts()">Retry</button></div> }
+
+        <div class="table-shell">
+          <table>
+            <thead><tr><th scope="col">NAME</th><th scope="col">COMPANY</th><th scope="col">CATEGORY</th><th scope="col">EMAIL</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              @for (contact of visibleContacts(); track contact.id; let index = $index) {
+                <tr>
+                  <td><div class="person"><span class="avatar" [class]="'avatar avatar-' + (index % 5)">{{ initials(contact.name) }}</span><span class="person-detail"><strong>{{ contact.name }}</strong><small>{{ contact.phone || 'No phone added' }}</small></span></div></td>
+                  <td class="company-cell">{{ contact.company || '—' }}</td>
+                  <td><span class="category-tag" [attr.data-category]="contact.category">{{ categoryLabel(contact.category) }}</span></td>
+                  <td><a class="email-link" [href]="'mailto:' + contact.email">{{ contact.email }}</a></td>
+                  <td><div class="row-actions"><button class="action-button" type="button" (click)="openEditDialog(contact)" [attr.aria-label]="'Edit ' + contact.name">Edit</button><button class="action-button action-delete" type="button" (click)="deleteContact(contact)" [attr.aria-label]="'Delete ' + contact.name">Delete</button></div></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5"><div class="empty-state">
+                  @if (loading()) { <span class="loader" aria-label="Loading contacts"></span><p>Loading your contacts...</p> }
+                  @else if (searchTerm() || selectedCategory() !== 'ALL') { <strong>No contacts match.</strong><p>Try another search or category.</p> }
+                  @else { <strong>Your directory is ready.</strong><p>Add a contact to get started.</p><button class="button button-secondary" type="button" (click)="openCreateDialog()">Add your first contact</button> }
+                </div></td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="page-footer"><span>CONTACT DESK <i>·</i> LOCAL DATABASE</span><span>{{ contacts().length }} {{ contacts().length === 1 ? 'person' : 'people' }}</span></footer>
+    </div>
+  </main>
+</div>
+
+<dialog #contactDialog class="contact-dialog" aria-labelledby="dialog-title">
+  <form [formGroup]="form" (ngSubmit)="saveContact()" novalidate>
+    <div class="dialog-heading"><div><div class="overline"><span></span> CONTACT DETAILS</div><h2 id="dialog-title">{{ editingId === null ? 'Add a contact' : 'Edit contact' }}</h2></div><button class="close-button" type="button" (click)="closeDialog()" aria-label="Close dialog">×</button></div>
+    <p class="dialog-subtitle">Keep the important details close at hand.</p>
+    <div class="form-grid">
+      <label class="form-field full-field">Full name <span>*</span><input formControlName="name" placeholder="e.g. Riley Chen" maxlength="100" autocomplete="name" />@if (form.controls.name.touched && form.controls.name.invalid) { <small class="field-error">Enter a name (up to 100 characters).</small> }</label>
+      <label class="form-field">Email address <span>*</span><input formControlName="email" type="email" placeholder="riley@studio.co" maxlength="150" autocomplete="email" />@if (form.controls.email.touched && form.controls.email.invalid) { <small class="field-error">Enter a valid email address.</small> }</label>
+      <label class="form-field">Phone<input formControlName="phone" type="tel" placeholder="+1 555 000 0000" maxlength="40" autocomplete="tel" /></label>
+      <label class="form-field">Company<input formControlName="company" placeholder="Studio or organization" maxlength="120" autocomplete="organization" /></label>
+      <label class="form-field">Category<select formControlName="category"><option value="CLIENT">Client</option><option value="PARTNER">Partner</option><option value="TEAM">Team</option><option value="LEAD">Lead</option><option value="VENDOR">Vendor</option></select></label>
+    </div>
+    <div class="dialog-actions"><button class="button button-secondary" type="button" (click)="closeDialog()">Cancel</button><button class="button button-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : editingId === null ? 'Create contact' : 'Save changes' }}</button></div>
+  </form>
+</dialog>
+
+@if (toastMessage()) { <div class="toast" role="status" aria-live="polite">{{ toastMessage() }}</div> }

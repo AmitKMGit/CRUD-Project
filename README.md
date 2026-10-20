@@ -31,7 +31,7 @@ Open http://localhost:4200. The Angular dev server proxies `/api` requests to Sp
 GitHub Pages serves static files only. Deploy the Spring Boot API separately (for example, as a Java web service on Render or Railway) before publishing the Angular frontend. Configure the backend's `CORS_ALLOWED_ORIGIN` environment variable to the Pages origin, such as `https://your-user.github.io` (no repository path).
 
 1. Push this repository to GitHub on the `main` branch.
-2. Deploy the `backend` folder as a Java 17 web service. Use `mvn -f backend/pom.xml spring-boot:run` for a simple host that supports Maven, or package it with `mvn -f backend/pom.xml package` and run the generated JAR. Set `CORS_ALLOWED_ORIGIN` to your GitHub Pages origin.
+2. On Render, create a **Docker** web service for this repository. Set **Root Directory** to `backend`; leave Docker build and start commands blank so Render uses `backend/Dockerfile`. Add the environment variable `CORS_ALLOWED_ORIGIN` with your GitHub Pages origin, such as `https://your-user.github.io` (no repository path). Render supplies `PORT` automatically.
 3. In the GitHub repository, open **Settings → Secrets and variables → Actions → Variables** and add `API_BASE_URL` with the backend URL ending in `/api`, for example `https://your-api.example.com/api`.
 4. Open **Settings → Pages**, set the source to **GitHub Actions**, then push to `main` or run **Deploy Angular to GitHub Pages** from the Actions tab.
 

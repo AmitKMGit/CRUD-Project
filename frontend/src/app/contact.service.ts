@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Contact, ContactRequest } from './contact.model';
+import { environment } from '../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ContactService {
   private readonly http = inject(HttpClient);
-  private readonly endpoint = '/api/contacts';
+  private readonly endpoint = `${environment.apiBaseUrl}/contacts`;
 
   getAll(): Observable<Contact[]> {
     return this.http.get<Contact[]>(this.endpoint);

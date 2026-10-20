@@ -1,0 +1,70 @@
+name: Deploy Angular to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Configure production API URL
+        working-directory: frontend
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Set the repository Actions variable API_BASE_URL to your hosted backend URL ending in /api."
+            exit 1
+          fi
+          node -e "const fs = require('node:fs'); const api = process.env.API_BASE_URL.replace(/\\/+$/, ''); if (!/^https:\\/\\//.test(api)) throw new Error('API_BASE_URL must use HTTPS.'); fs.writeFileSync('src/environments/environment.production.ts', 'export const environment = { production: true, apiBaseUrl: ' + JSON.stringify(api) + ' };\\n');"
+
+      - name: Build Angular app
+        working-directory: frontend
+        run: |
+          if [[ "$GITHUB_REPOSITORY" == *.github.io ]]; then
+            base_href="/"
+          else
+            repository_name="${GITHUB_REPOSITORY#*/}"
+            base_href="/$repository_name/"
+          fi
+          npm run build -- --base-href "$base_href"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist/frontend/browser
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
